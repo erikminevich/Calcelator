@@ -30,5 +30,13 @@ def evaluate(node) -> float:
         if right == 0.0:
             raise EvalError("Деление на ноль")
         return _ensure_finite(left / right)
+    if node.op == "^":
+        try:
+            result = math.pow(left, right)
+        except OverflowError as exc:
+            raise EvalError("Численное переполнение") from exc
+        except ValueError as exc:
+            raise EvalError("Некорректная операция степени") from exc
+        return _ensure_finite(result)
 
     raise EvalError(f"Неподдерживаемая операция '{node.op}'")

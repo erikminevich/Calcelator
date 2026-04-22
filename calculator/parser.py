@@ -24,15 +24,34 @@ class Parser:
         return node
 
     def _term(self):
-        node = self._factor()
+        node = self._unary()
         while self._current().kind in ("MUL", "DIV"):
             op_token = self._advance()
-            right = self._factor()
+            right = self._unary()
             node = BinaryOpNode(op_token.lexeme, node, right)
         return node
 
-    def _factor(self):
+    def _unary(self):
         token = self._current()
+        if token.kind == "PLUS":
+            self._advance()
+            return self._unary()
+        if token.kind == "MINUS":
+            self._advance()
+            return BinaryOpNode("-", NumberNode(0.0), self._unary())
+        return self._power()
+
+    def _power(self):
+        node = self._primary()
+        if self._current().kind == "POW":
+            op_token = self._advance()
+            right = self._power()
+            node = BinaryOpNode(op_token.lexeme, node, right)
+        return node
+
+    def _primary(self):
+        token = self._current()
+
         if token.kind == "NUMBER":
             self._advance()
             try:
@@ -40,7 +59,15 @@ class Parser:
             except ValueError as exc:
                 raise ParseError(f"Некорректное число '{token.lexeme}'") from exc
 
-        raise ParseError(f"Ожидалось число в позиции {token.pos}")
+        if token.kind == "LPAREN":
+            self._advance()
+            inner = self._expression()
+            if self._current().kind != "RPAREN":
+                raise ParseError(f"Ожидалась ')' в позиции {self._current().pos}")
+            self._advance()
+            return inner
+
+        raise ParseError(f"Ожидалось число или '(' в позиции {token.pos}")
 
     def _current(self) -> Token:
         return self._tokens[self._index]

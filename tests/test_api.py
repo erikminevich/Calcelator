@@ -15,10 +15,13 @@ class ApiTests(unittest.TestCase):
     def test_calculate_success(self):
         self.assertAlmostEqual(calculate("2 + 3 * 5"), 17.0)
 
+    def test_calculate_stage2_expression(self):
+        self.assertAlmostEqual(calculate("1 + 2 / (3 + 4)"), 1.2857142857142856)
+
     def test_parse_error_does_not_call_evaluator(self):
         with patch("calculator.api.evaluate") as evaluate_mock:
             with self.assertRaises(ParseError):
-                calculate("2 ^ 4")
+                calculate("1 + (2")
             evaluate_mock.assert_not_called()
 
     def test_cli_exit_code_non_zero_on_error(self):

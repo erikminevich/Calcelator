@@ -39,6 +39,18 @@ def tokenize(text: str) -> list[Token]:
             if not has_digits:
                 raise ParseError(f"Некорректное число в позиции {start}")
 
+            if i < length and text[i] in ("e", "E"):
+                i += 1
+                if i < length and text[i] in ("+", "-"):
+                    i += 1
+
+                exp_start = i
+                while i < length and text[i].isdigit():
+                    i += 1
+
+                if exp_start == i:
+                    raise ParseError(f"Некорректная экспонента в позиции {start}")
+
             tokens.append(Token("NUMBER", text[start:i], start))
             continue
 
@@ -56,6 +68,18 @@ def tokenize(text: str) -> list[Token]:
             continue
         if ch == "/":
             tokens.append(Token("DIV", ch, i))
+            i += 1
+            continue
+        if ch == "^":
+            tokens.append(Token("POW", ch, i))
+            i += 1
+            continue
+        if ch == "(":
+            tokens.append(Token("LPAREN", ch, i))
+            i += 1
+            continue
+        if ch == ")":
+            tokens.append(Token("RPAREN", ch, i))
             i += 1
             continue
 

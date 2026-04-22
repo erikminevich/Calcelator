@@ -1,3 +1,4 @@
+import argparse
 import sys
 import unittest
 from pathlib import Path
@@ -8,10 +9,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.pretty_table import render_pretty_table  # noqa: E402
-from tests.stage1_cases import run_stage1_cases  # noqa: E402
-
-
-REPORT_PATH = ROOT / "reports" / "stage1_test_report.txt"
 
 
 def run_unittests() -> bool:
@@ -20,8 +17,21 @@ def run_unittests() -> bool:
     return result.wasSuccessful()
 
 
-def run_case_report() -> bool:
-    case_results = run_stage1_cases()
+def _load_case_runner(stage: str):
+    if stage == "stage1":
+        from tests.stage1_cases import run_stage1_cases
+
+        return run_stage1_cases
+    if stage == "stage2":
+        from tests.stage2_cases import run_stage2_cases
+
+        return run_stage2_cases
+    raise ValueError(stage)
+
+
+def run_case_report(stage: str) -> bool:
+    case_runner = _load_case_runner(stage)
+    case_results = case_runner()
     rows = [
         [
             item.stage,
@@ -41,22 +51,31 @@ def run_case_report() -> bool:
         rows,
     )
 
-    print("\nStage 1 case report")
+    report_path = ROOT / "reports" / f"{stage}_test_report.txt"
+    print(f"\n{stage.upper()} case report")
     print(table)
 
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(table + "\n", encoding="utf-8")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(table + "\n", encoding="utf-8")
 
     return all(item.status == "PASS" for item in case_results)
 
 
-def main() -> int:
+def parse_args(argv: list[str] | None = None):
+    parser = argparse.ArgumentParser(description="Run tests and generate stage report")
+    parser.add_argument("--stage", choices=["stage1", "stage2"], default="stage2")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+
     tests_ok = run_unittests()
-    report_ok = run_case_report()
+    report_ok = run_case_report(args.stage)
     if tests_ok and report_ok:
-        print(f"\nAll checks passed. Report saved to: {REPORT_PATH}")
+        print(f"\nAll checks passed for {args.stage}.")
         return 0
-    print(f"\nChecks failed. Report saved to: {REPORT_PATH}")
+    print(f"\nChecks failed for {args.stage}.")
     return 1
 
 

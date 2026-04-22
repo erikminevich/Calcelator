@@ -17,10 +17,12 @@ class EvaluatorTests(unittest.TestCase):
             if right == 0.0:
                 raise ZeroDivisionError("division by zero")
             return left / right
+        if op == "^":
+            return left**right
         raise ValueError(op)
 
     def test_all_trees_with_two_operations(self):
-        ops = ["+", "-", "*", "/"]
+        ops = ["+", "-", "*", "/", "^"]
         a, b, c = 8.0, 2.0, 4.0
 
         for op1 in ops:
@@ -43,13 +45,17 @@ class EvaluatorTests(unittest.TestCase):
         with self.assertRaises(EvalError):
             evaluate(BinaryOpNode("/", NumberNode(1e300), NumberNode(1e-300)))
 
+    def test_power_domain_error(self):
+        with self.assertRaises(EvalError):
+            evaluate(BinaryOpNode("^", NumberNode(-2.0), NumberNode(0.5)))
+
     def test_unknown_node_error(self):
         with self.assertRaises(EvalError):
             evaluate(object())
 
     def test_unsupported_operator_error(self):
         with self.assertRaises(EvalError):
-            evaluate(BinaryOpNode("^", NumberNode(2.0), NumberNode(3.0)))
+            evaluate(BinaryOpNode("%", NumberNode(2.0), NumberNode(3.0)))
 
 
 if __name__ == "__main__":

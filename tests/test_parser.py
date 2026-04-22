@@ -10,6 +10,24 @@ class ParserTests(unittest.TestCase):
         node = parse("42")
         self.assertEqual(node, NumberNode(42.0))
 
+    def test_scientific_notation_number(self):
+        node = parse("1.25e+09")
+        self.assertEqual(node, NumberNode(1.25e9))
+
+    def test_power_is_right_associative(self):
+        node = parse("2^3^2")
+        self.assertEqual(
+            node,
+            BinaryOpNode("^", NumberNode(2.0), BinaryOpNode("^", NumberNode(3.0), NumberNode(2.0))),
+        )
+
+    def test_parentheses_change_precedence(self):
+        node = parse("(1 + 2) * 3")
+        self.assertEqual(
+            node,
+            BinaryOpNode("*", BinaryOpNode("+", NumberNode(1.0), NumberNode(2.0)), NumberNode(3.0)),
+        )
+
     def test_operations_and_precedence(self):
         node = parse("2 + 3 * 5 - 4 / 2")
 
@@ -32,15 +50,11 @@ class ParserTests(unittest.TestCase):
         )
 
     def test_invalid_expressions_examples(self):
-        invalid = ["2 ^ 4", "2 /", "1 + 4j", "1 1 + 1"]
+        invalid = ["2 ^^ 4", "2 /", "1 + 4j", "1 1 + 1", "1 + (2", "1e+"]
         for expr in invalid:
             with self.subTest(expr=expr):
                 with self.assertRaises(ParseError):
                     parse(expr)
-
-    def test_parentheses_are_not_supported_in_stage1(self):
-        with self.assertRaises(ParseError):
-            parse("1 + (2)")
 
     def test_empty_expression(self):
         with self.assertRaises(ParseError):
