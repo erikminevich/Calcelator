@@ -1,96 +1,46 @@
-from dataclasses import dataclass
-from typing import Optional
+from calculator.ast_nodes import BinaryOpNode, NumberNode
 
-from calculator.api import calculate, format_number
-from calculator.errors import EvalError, ParseError
+from .report_helpers import ReportResult, run_evaluator_case, run_integration_case, run_parser_case
 
 
-@dataclass(frozen=True)
-class StageCase:
-    case_id: str
-    source: str
-    expression: str
-    expected_value: Optional[float] = None
-    expected_error_prefix: Optional[str] = None
+def run_stage1_parser_cases() -> list[ReportResult]:
+    return [
+        run_parser_case("42", "42"),
+        run_parser_case("3.14", "3.14"),
+        run_parser_case("2 + 3", "Add(2, 3)"),
+        run_parser_case("5 * 6", "Mult(5, 6)"),
+        run_parser_case("10 - 4 / 2", "Sub(10, Div(4, 2))"),
+        run_parser_case("0.25 / 0.001 + 0.081 * 25", "Add(Div(0.25, 0.001), Mult(0.081, 25))"),
+        run_parser_case("1 + 4j", "Ошибка парсера", expected_error="Лишний токен"),
+        run_parser_case("1 1 + 1", "Ошибка парсера", expected_error="Лишний токен"),
+        run_parser_case("2 /", "Ошибка парсера", expected_error="Ожидалось"),
+    ]
 
 
-@dataclass(frozen=True)
-class CaseResult:
-    stage: str
-    case_id: str
-    source: str
-    expression: str
-    expected: str
-    actual: str
-    message: str
-    status: str
+def run_stage1_evaluator_cases() -> list[ReportResult]:
+    return [
+        run_evaluator_case("Add(2, 2)", BinaryOpNode("+", NumberNode(2), NumberNode(2)), "4"),
+        run_evaluator_case("Mult(3, 4)", BinaryOpNode("*", NumberNode(3), NumberNode(4)), "12"),
+        run_evaluator_case("Div(10, 2)", BinaryOpNode("/", NumberNode(10), NumberNode(2)), "5"),
+        run_evaluator_case("Sub(10, 5)", BinaryOpNode("-", NumberNode(10), NumberNode(5)), "5"),
+        run_evaluator_case(
+            "Div(2, 0)",
+            BinaryOpNode("/", NumberNode(2), NumberNode(0)),
+            "Ошибка при вычислении: Деление на ноль",
+        ),
+        run_evaluator_case(
+            "Div(1e300, 1e-300)",
+            BinaryOpNode("/", NumberNode(1e300), NumberNode(1e-300)),
+            "Ошибка при вычислении: Численное переполнение",
+        ),
+    ]
 
 
-STAGE1_CASES: list[StageCase] = [
-    StageCase("S1-REQ-01", "assignment", "7", expected_value=7.0),
-    StageCase("S1-REQ-02", "assignment", "2 + 3 * 5", expected_value=17.0),
-    StageCase("S1-REQ-03", "assignment", "12 / 4 - 1", expected_value=2.0),
-    StageCase("S1-REQ-04", "assignment", "2 ^ 4", expected_error_prefix="Ошибка парсера"),
-    StageCase("S1-REQ-05", "assignment", "2 /", expected_error_prefix="Ошибка парсера"),
-    StageCase("S1-REQ-06", "assignment", "1 + 4j", expected_error_prefix="Ошибка парсера"),
-    StageCase("S1-REQ-07", "assignment", "2 / 0", expected_error_prefix="Ошибка при вычислении"),
-    StageCase("S1-REQ-08", "assignment", "1 + 0.0000000000000000000001", expected_value=1.0),
-    StageCase("S1-EXT-01", "extra", "1 1 + 1", expected_error_prefix="Ошибка парсера"),
-    StageCase("S1-EXT-02", "extra", ".5 + .25", expected_value=0.75),
-    StageCase("S1-EXT-03", "extra", "8 / 4 / 2", expected_value=1.0),
-]
-
-
-def run_stage1_cases() -> list[CaseResult]:
-    results: list[CaseResult] = []
-
-    for case in STAGE1_CASES:
-        expected = (
-            case.expected_error_prefix if case.expected_error_prefix else format_number(case.expected_value or 0.0)
-        )
-
-        try:
-            value = calculate(case.expression)
-            actual = format_number(value)
-            if case.expected_error_prefix:
-                status = "FAIL"
-                message = "Ожидалась ошибка, но получен результат"
-            else:
-                diff = abs(value - float(case.expected_value))
-                if diff <= 1e-12:
-                    status = "PASS"
-                    message = "OK"
-                else:
-                    status = "FAIL"
-                    message = f"Отклонение {diff:.3g}"
-        except ParseError as exc:
-            actual = f"Ошибка парсера: {exc}"
-            if case.expected_error_prefix and actual.startswith(case.expected_error_prefix):
-                status = "PASS"
-                message = "OK"
-            else:
-                status = "FAIL"
-                message = "Неожиданная ошибка парсера"
-        except EvalError as exc:
-            actual = f"Ошибка при вычислении: {exc}"
-            if case.expected_error_prefix and actual.startswith(case.expected_error_prefix):
-                status = "PASS"
-                message = "OK"
-            else:
-                status = "FAIL"
-                message = "Неожиданная ошибка вычисления"
-
-        results.append(
-            CaseResult(
-                stage="stage1",
-                case_id=case.case_id,
-                source=case.source,
-                expression=case.expression,
-                expected=expected,
-                actual=actual,
-                message=message,
-                status=status,
-            )
-        )
-
-    return results
+def run_stage1_integration_cases() -> list[ReportResult]:
+    return [
+        run_integration_case("1 + 1", "2"),
+        run_integration_case("2 * 3", "6"),
+        run_integration_case("10 / 2", "5"),
+        run_integration_case("1 / 0", "Ошибка при вычислении: Деление на ноль"),
+        run_integration_case("1 + 4j", "Ошибка парсера: Лишний токен 'j' в позиции 5"),
+    ]

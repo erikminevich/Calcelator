@@ -1,6 +1,14 @@
-from .ast_nodes import BinaryOpNode, NumberNode
+import math
+
+from .ast_nodes import BinaryOpNode, FunctionCallNode, NumberNode
 from .errors import ParseError
 from .lexer import Token, tokenize
+
+
+CONSTANTS = {
+    "pi": math.pi,
+    "e": math.e,
+}
 
 
 class Parser:
@@ -59,6 +67,23 @@ class Parser:
             except ValueError as exc:
                 raise ParseError(f"Некорректное число '{token.lexeme}'") from exc
 
+        if token.kind == "IDENT":
+            self._advance()
+            name = token.lexeme.lower()
+
+            if self._current().kind == "LPAREN":
+                self._advance()
+                argument = self._expression()
+                if self._current().kind != "RPAREN":
+                    raise ParseError(f"Ожидалась ')' в позиции {self._current().pos}")
+                self._advance()
+                return FunctionCallNode(name, argument)
+
+            if name in CONSTANTS:
+                return NumberNode(CONSTANTS[name])
+
+            raise ParseError(f"Неизвестный идентификатор '{token.lexeme}' в позиции {token.pos}")
+
         if token.kind == "LPAREN":
             self._advance()
             inner = self._expression()
@@ -67,7 +92,7 @@ class Parser:
             self._advance()
             return inner
 
-        raise ParseError(f"Ожидалось число или '(' в позиции {token.pos}")
+        raise ParseError(f"Ожидалось число, идентификатор или '(' в позиции {token.pos}")
 
     def _current(self) -> Token:
         return self._tokens[self._index]

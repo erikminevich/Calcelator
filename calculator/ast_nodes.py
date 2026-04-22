@@ -11,3 +11,9 @@ class BinaryOpNode:
     op: str
     left: object
     right: object
+
+
+@dataclass(frozen=True)
+class FunctionCallNode:
+    name: str
+    argument: object

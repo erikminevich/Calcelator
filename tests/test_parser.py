@@ -1,6 +1,7 @@
+import math
 import unittest
 
-from calculator.ast_nodes import BinaryOpNode, NumberNode
+from calculator.ast_nodes import BinaryOpNode, FunctionCallNode, NumberNode
 from calculator.errors import ParseError
 from calculator.parser import parse
 
@@ -9,6 +10,9 @@ class ParserTests(unittest.TestCase):
     def test_number_is_expression(self):
         node = parse("42")
         self.assertEqual(node, NumberNode(42.0))
+
+    def test_constant_is_expression(self):
+        self.assertEqual(parse("pi"), NumberNode(math.pi))
 
     def test_scientific_notation_number(self):
         node = parse("1.25e+09")
@@ -20,6 +24,10 @@ class ParserTests(unittest.TestCase):
             node,
             BinaryOpNode("^", NumberNode(2.0), BinaryOpNode("^", NumberNode(3.0), NumberNode(2.0))),
         )
+
+    def test_function_call(self):
+        node = parse("sqrt(ln(e))")
+        self.assertEqual(node, FunctionCallNode("sqrt", FunctionCallNode("ln", NumberNode(math.e))))
 
     def test_parentheses_change_precedence(self):
         node = parse("(1 + 2) * 3")
@@ -50,7 +58,7 @@ class ParserTests(unittest.TestCase):
         )
 
     def test_invalid_expressions_examples(self):
-        invalid = ["2 ^^ 4", "2 /", "1 + 4j", "1 1 + 1", "1 + (2", "1e+"]
+        invalid = ["2 ^^ 4", "2 /", "1 + 4j", "1 1 + 1", "1 + (2", "1e+", "foo", "sin(1"]
         for expr in invalid:
             with self.subTest(expr=expr):
                 with self.assertRaises(ParseError):

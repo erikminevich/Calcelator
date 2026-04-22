@@ -6,7 +6,13 @@ from .errors import EvalError, ParseError
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="calc", description="CLI calculator (Stage 1)")
+    parser = argparse.ArgumentParser(prog="calc", description="CLI calculator")
+    parser.add_argument(
+        "--angle-unit",
+        choices=["radian", "degree"],
+        default="radian",
+        help="Angle unit for trigonometric functions",
+    )
     parser.add_argument("expression", help="Arithmetic expression")
     return parser
 
@@ -16,7 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        result = calculate(args.expression)
+        result = calculate(args.expression, angle_unit=args.angle_unit)
         print(format_number(result))
         return 0
     except ParseError as exc:

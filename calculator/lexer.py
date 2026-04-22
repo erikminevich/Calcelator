@@ -22,6 +22,14 @@ def tokenize(text: str) -> list[Token]:
             i += 1
             continue
 
+        if ch.isalpha() or ch == "_":
+            start = i
+            i += 1
+            while i < length and (text[i].isalnum() or text[i] == "_"):
+                i += 1
+            tokens.append(Token("IDENT", text[start:i], start))
+            continue
+
         if ch.isdigit() or ch == ".":
             start = i
             has_digits = False

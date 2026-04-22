@@ -18,6 +18,12 @@ class ApiTests(unittest.TestCase):
     def test_calculate_stage2_expression(self):
         self.assertAlmostEqual(calculate("1 + 2 / (3 + 4)"), 1.2857142857142856)
 
+    def test_calculate_stage3_expression(self):
+        self.assertAlmostEqual(calculate("sqrt(ln(e))"), 1.0)
+
+    def test_calculate_with_degree_flag(self):
+        self.assertAlmostEqual(calculate("sin(90)", angle_unit="degree"), 1.0, places=12)
+
     def test_parse_error_does_not_call_evaluator(self):
         with patch("calculator.api.evaluate") as evaluate_mock:
             with self.assertRaises(ParseError):
